@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Deaf Gamer">
+<meta name="theme-color" content="#0f0f1a">
+<title>Deaf Gamer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0f0f1a;
+    --surface: #1a1a2e;
+    --surface2: #16213e;
+    --accent: #7c3aed;
+    --accent2: #06d6a0;
+    --accent3: #f72585;
+    --text: #e8e8f0;
+    --text2: #9090b0;
+    --border: #2a2a4a;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* ── APP SHELL ── */
+  #app { display: flex; flex-direction: column; height: 100vh; height: -webkit-fill-available; }
+
+  /* ── STATUS BAR SPACER ── */
+  .status-bar {
+    height: calc(var(--safe-top) + 44px);
+    background: var(--surface);
+    display: flex;
+    align-items: flex-end;
+    padding: 0 20px 10px;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .app-logo { font-family: 'Space Mono', monospace; font-size: 18px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+  .app-logo span { color: var(--accent2); }
+  .status-icons { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent2); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── SCREENS ── */
+  .screen { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+  .screen.active { display: flex; }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    display: flex;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding-bottom: calc(var(--safe-bottom) + 4px);
+    padding-top: 8px;
+    flex-shrink: 0;
+  }
+  .nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 6px 4px; background: none; border: none; cursor: pointer;
+    color: var(--text2); transition: color 0.2s;
+  }
+  .nav-btn.active { color: var(--accent); }
+  .nav-btn .nav-icon { font-size: 22px; }
+  .nav-btn .nav-label { font-size: 10px; font-weight: 600; letter-spacing: 0.5px; }
+  .nav-badge {
+    position: relative; display: inline-block;
+  }
+  .badge {
+    position: absolute; top: -4px; right: -8px;
+    background: var(--accent3); color: white;
+    font-size: 9px; font-weight: 700;
+    width: 16px; height: 16px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── SCROLL CONTAINER ── */
+  .scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .scroll::-webkit-scrollbar { display: none; }
+
+  /* ── HOME ── */
+  .home-header { padding: 20px 20px 12px; }
+  .home-header h1 { font-size: 26px; font-weight: 700; }
+  .home-header h1 span { color: var(--accent2); }
+  .home-header p { color: var(--text2); font-size: 14px; margin-top: 4px; }
+
+  .section-title {
+    font-size: 13px; font-weight: 600; letter-spacing: 1px;
+    color: var(--text2); text-transform: uppercase;
+    padding: 0 20px 10px;
+  }
+
+  /* Active call banner */
+  .call-banner {
+    margin: 0 16px 16px;
+    background: linear-gradient(135deg, #7c3aed22, #06d6a022);
+    border: 1px solid var(--accent);
+    border-radius: 16px; padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer;
+  }
+  .call-banner-icon { font-size: 28px; }
+  .call-banner-info { flex: 1; }
+  .call-banner-info strong { font-size: 15px; display: block; }
+  .call-banner-info span { font-size: 12px; color: var(--accent2); }
+  .call-banner-btn {
+    background: var(--accent); color: white;
+    border: none; border-radius: 10px; padding: 8px 14px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+
+  /* Friend list */
+  .friend-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 20px; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .friend-row:active { background: var(--surface); }
+  .avatar {
+    width: 46px; height: 46px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0; position: relative;
+  }
+  .avatar-online::after {
+    content: ''; position: absolute; bottom: 1px; right: 1px;
+    width: 11px; height: 11px; border-radius: 50%;
+    background: var(--accent2); border: 2px solid var(--bg);
+  }
+  .friend-info { flex: 1; }
+  .friend-name { font-size: 15px; font-weight: 600; }
+  .friend-status { font-size: 12px; color: var(--text2); margin-top: 1px; }
+  .friend-time { font-size: 11px; color: var(--text2); }
+
+  /* ── CHAT ── */
+  .chat-list { padding: 8px 0; }
+  .chat-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 20px; cursor: pointer; transition: background 0.15s;
+  }
+  .chat-row:active { background: var(--surface); }
+  .chat-info { flex: 1; min-width: 0; }
+  .chat-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .chat-name { font-size: 15px; font-weight: 600; }
+  .chat-time { font-size: 11px; color: var(--text2); flex-shrink: 0; }
+  .chat-preview { font-size: 13px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .chat-unread {
+    background: var(--accent); color: white;
+    font-size: 11px; font-weight: 700;
+    min-width: 20px; height: 20px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 5px; flex-shrink: 0;
+  }
+
+  /* ── CHAT CONVERSATION ── */
+  #chatConvo { background: var(--bg); }
+  .convo-header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 12px 16px; display: flex; align-items: center; gap: 12px;
+    flex-shrink: 0;
+  }
+  .back-btn {
+    background: none; border: none; color: var(--accent);
+    font-size: 22px; cursor: pointer; padding: 4px;
+  }
+  .convo-avatar { font-size: 24px; }
+  .convo-name { font-size: 16px; font-weight: 600; flex: 1; }
+  .convo-status { font-size: 12px; color: var(--accent2); }
+  .convo-actions { display: flex; gap: 8px; }
+  .icon-btn {
+    background: var(--surface2); border: none; border-radius: 10px;
+    width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    font-size: 18px; cursor: pointer; color: var(--text);
+  }
+
+  .messages { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .messages::-webkit-scrollbar { display: none; }
+
+  .msg { max-width: 75%; display: flex; flex-direction: column; }
+  .msg.mine { align-self: flex-end; align-items: flex-end; }
+  .msg.theirs { align-self: flex-start; }
+  .msg-bubble {
+    padding: 10px 14px; border-radius: 18px;
+    font-size: 15px; line-height: 1.4;
+  }
+  .msg.mine .msg-bubble { background: var(--accent); color: white; border-bottom-right-radius: 4px; }
+  .msg.theirs .msg-bubble { background: var(--surface); border-bottom-left-radius: 4px; }
+  .msg-time { font-size: 11px; color: var(--text2); margin-top: 3px; padding: 0 4px; }
+  .msg-emoji { font-size: 32px; background: none !important; padding: 4px 0 !important; }
+
+  .chat-input-bar {
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: 10px 12px; padding-bottom: calc(var(--safe-bottom) + 10px);
+    display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  }
+  .chat-input {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 22px; padding: 10px 16px; color: var(--text);
+    font-family: inherit; font-size: 15px; outline: none;
+    -webkit-appearance: none;
+  }
+  .chat-input::placeholder { color: var(--text2); }
+  .send-btn {
+    background: var(--accent); border: none; border-radius: 50%;
+    width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+    font-size: 18px; cursor: pointer; flex-shrink: 0;
+  }
+  .emoji-btn {
+    background: none; border: none; font-size: 22px; cursor: pointer; flex-shrink: 0;
+  }
+
+  /* ── GROUPS ── */
+  .groups-header {
+    padding: 16px 20px 8px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .groups-header h2 { font-size: 22px; font-weight: 700; }
+  .create-btn {
+    background: var(--accent); color: white; border: none; border-radius: 12px;
+    padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+  }
+  .group-card {
+    margin: 0 16px 12px;
+    background: var(--surface); border-radius: 16px; padding: 16px;
+    cursor: pointer; transition: transform 0.1s;
+    border: 1px solid var(--border);
+  }
+  .group-card:active { transform: scale(0.98); }
+  .group-top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .group-icon { font-size: 28px; width: 50px; height: 50px; background: var(--surface2); border-radius: 14px; display: flex; align-items: center; justify-content: center; }
+  .group-name { font-size: 16px; font-weight: 700; }
+  .group-members { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .group-preview { font-size: 13px; color: var(--text2); margin-bottom: 10px; }
+  .group-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tag {
+    background: var(--surface2); color: var(--accent2);
+    font-size: 11px; font-weight: 600; padding: 3px 10px;
+    border-radius: 20px; border: 1px solid var(--accent2)33;
+  }
+
+  /* ── VIDEO CALL ── */
+  #videoScreen { background: #060612; }
+  .video-header {
+    padding: calc(var(--safe-top) + 16px) 20px 12px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .video-header h2 { font-size: 20px; font-weight: 700; flex: 1; }
+  .new-call-btn {
+    background: var(--accent2); color: #000; border: none; border-radius: 12px;
+    padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .call-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    padding: 0 16px; margin-bottom: 16px;
+  }
+  .call-tile {
+    background: var(--surface); border-radius: 16px; aspect-ratio: 3/4;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; position: relative; overflow: hidden;
+    border: 2px solid transparent; cursor: pointer; transition: border-color 0.2s;
+  }
+  .call-tile.speaking { border-color: var(--accent2); }
+  .call-tile.me { border-color: var(--accent); }
+  .call-tile-emoji { font-size: 40px; }
+  .call-tile-name { font-size: 13px; font-weight: 600; }
+  .call-tile-badge {
+    position: absolute; top: 8px; left: 8px;
+    font-size: 11px; font-weight: 700; padding: 3px 8px;
+    border-radius: 8px; color: white;
+  }
+  .call-tile.me .call-tile-badge { background: var(--accent); }
+  .call-tile.speaking .call-tile-badge { background: var(--accent2); color: #000; }
+  .call-tile-mic {
+    position: absolute; bottom: 8px; right: 8px;
+    font-size: 16px; background: #00000066; border-radius: 8px; padding: 4px 6px;
+  }
+
+  .call-controls {
+    display: flex; justify-content: center; gap: 16px;
+    padding: 16px 20px; padding-bottom: calc(var(--safe-bottom) + 16px);
+  }
+  .ctrl-btn {
+    width: 60px; height: 60px; border-radius: 50%; border: none;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; cursor: pointer; transition: transform 0.1s;
+  }
+  .ctrl-btn:active { transform: scale(0.9); }
+  .ctrl-btn.mic { background: var(--surface); color: var(--text); }
+  .ctrl-btn.cam { background: var(--surface); color: var(--text); }
+  .ctrl-btn.end { background: #e11d48; color: white; }
+  .ctrl-btn.asl { background: var(--accent); color: white; }
+  .ctrl-btn.chat2 { background: var(--surface2); color: var(--text); }
+
+  /* ── PROFILE ── */
+  .profile-hero {
+    background: linear-gradient(160deg, var(--accent)33, var(--accent2)22);
+    padding: 30px 20px 24px; text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .profile-ava { font-size: 64px; margin-bottom: 12px; }
+  .profile-name { font-size: 24px; font-weight: 700; }
+  .profile-handle { font-size: 14px; color: var(--accent2); margin-top: 3px; font-family: 'Space Mono', monospace; }
+  .profile-bio { font-size: 13px; color: var(--text2); margin-top: 8px; line-height: 1.5; }
+  .profile-stats { display: flex; justify-content: center; gap: 32px; margin-top: 16px; }
+  .stat { text-align: center; }
+  .stat-num { font-size: 20px; font-weight: 700; }
+  .stat-label { font-size: 11px; color: var(--text2); margin-top: 1px; }
+
+  .profile-section { padding: 20px 20px 0; }
+  .profile-section h3 { font-size: 15px; font-weight: 600; color: var(--text2); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.8px; font-size: 12px; }
+  .badge-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .profile-badge {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 8px;
+  }
+  .profile-badge .b-icon { font-size: 20px; }
+  .profile-badge .b-text { font-size: 12px; font-weight: 600; }
+
+  .settings-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 20px; cursor: pointer; transition: background 0.15s;
+    border-bottom: 1px solid var(--border)55;
+  }
+  .settings-row:active { background: var(--surface); }
+  .settings-icon { font-size: 20px; width: 34px; text-align: center; }
+  .settings-text { flex: 1; }
+  .settings-label { font-size: 15px; }
+  .settings-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
+  .settings-arrow { color: var(--text2); font-size: 16px; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); padding: 12px 20px; border-radius: 14px;
+    font-size: 14px; font-weight: 500; opacity: 0; pointer-events: none;
+    transition: all 0.3s; z-index: 999; white-space: nowrap;
+    box-shadow: 0 8px 32px #00000066;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: #00000088;
+    display: flex; align-items: flex-end; justify-content: center;
+    z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+  }
+  .modal-overlay.show { opacity: 1; pointer-events: all; }
+  .modal-sheet {
+    background: var(--surface); border-radius: 24px 24px 0 0;
+    padding: 20px; padding-bottom: calc(var(--safe-bottom) + 20px);
+    width: 100%; max-width: 500px;
+    transform: translateY(100%); transition: transform 0.3s;
+  }
+  .modal-overlay.show .modal-sheet { transform: translateY(0); }
+  .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+  .modal-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px 16px; color: var(--text);
+    font-family: inherit; font-size: 15px; outline: none; margin-bottom: 12px;
+    -webkit-appearance: none;
+  }
+  .modal-input::placeholder { color: var(--text2); }
+  .modal-btn {
+    width: 100%; background: var(--accent); color: white; border: none;
+    border-radius: 14px; padding: 16px; font-size: 16px; font-weight: 600;
+    cursor: pointer; font-family: inherit; margin-top: 8px;
+  }
+
+  /* Install banner */
+  .install-banner {
+    background: linear-gradient(135deg, var(--accent), #9f1fe8);
+    margin: 12px 16px; border-radius: 16px; padding: 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .install-icon { font-size: 32px; }
+  .install-text { flex: 1; }
+  .install-text strong { font-size: 14px; display: block; }
+  .install-text span { font-size: 12px; opacity: 0.85; }
+  .install-close {
+    background: #ffffff33; border: none; color: white;
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <span class="app-logo">DEAF<span>GAMER</span></span>
+    <div class="status-icons">
+      <div class="status-dot"></div>
+      <span style="font-size:12px;color:var(--accent2);font-weight:600">ONLINE</span>
+    </div>
+  </div>
+
+  <!-- ══ HOME ══ -->
+  <div class="screen active" id="homeScreen">
+    <div class="scroll">
+      <div class="home-header">
+        <h1>Hey, <span>Alex</span> 🤟</h1>
+        <p>2 friends online · 1 active call</p>
+      </div>
+
+      <!-- Install banner -->
+      <div class="install-banner" id="installBanner">
+        <div class="install-icon">📲</div>
+        <div class="install-text">
+          <strong>Install on iPhone</strong>
+          <span>Tap Share → Add to Home Screen</span>
+        </div>
+        <button class="install-close" onclick="document.getElementById('installBanner').remove()">×</button>
+      </div>
+
+      <!-- Active call -->
+      <div class="call-banner" onclick="goToVideo()">
+        <div class="call-banner-icon">📹</div>
+        <div class="call-banner-info">
+          <strong>Gaming Squad</strong>
+          <span>🟢 3 people in call</span>
+        </div>
+        <button class="call-banner-btn">Join</button>
+      </div>
+
+      <div class="section-title">Friends Online</div>
+
+      <div class="friend-row" onclick="openChat('Jordan','🎮','Playing Fortnite')">
+        <div class="avatar avatar-online" style="background:#7c3aed33">🎮</div>
+        <div class="friend-info">
+          <div class="friend-name">Jordan</div>
+          <div class="friend-status">🎮 Playing Fortnite</div>
+        </div>
+        <div class="friend-time">now</div>
+      </div>
+
+      <div class="friend-row" onclick="openChat('Sam','🎧','In call')">
+        <div class="avatar avatar-online" style="background:#06d6a033">🎧</div>
+        <div class="friend-info">
+          <div class="friend-name">Sam</div>
+          <div class="friend-status">📹 In video call</div>
+        </div>
+        <div class="friend-time">now</div>
+      </div>
+
+      <div class="friend-row" onclick="openChat('Riley','🌙','Away')">
+        <div class="avatar" style="background:#f7258522">🌙</div>
+        <div class="friend-info">
+          <div class="friend-name">Riley</div>
+          <div class="friend-status">Away</div>
+        </div>
+        <div class="friend-time">2h</div>
+      </div>
+
+      <div class="section-title" style="margin-top:8px">Recent Activity</div>
+
+      <div class="friend-row">
+        <div class="avatar" style="background:#7c3aed22;font-size:18px">🏆</div>
+        <div class="friend-info">
+          <div class="friend-name">Jordan won a match!</div>
+          <div class="friend-status">Victory Royale in Fortnite</div>
+        </div>
+        <div class="friend-time">5m</div>
+      </div>
+
+      <div class="friend-row">
+        <div class="avatar" style="background:#06d6a022;font-size:18px">👥</div>
+        <div class="friend-info">
+          <div class="friend-name">New group created</div>
+          <div class="friend-status">ASL Gamers Unite</div>
+        </div>
+        <div class="friend-time">1h</div>
+      </div>
+
+      <div style="height:20px"></div>
+    </div>
+  </div>
+
+  <!-- ══ CHATS ══ -->
+  <div class="screen" id="chatScreen">
+    <div class="scroll chat-list">
+      <div class="groups-header">
+        <h2>Messages</h2>
+        <button class="create-btn" onclick="showModal('newChat')">+ New</button>
+      </div>
+
+      <div class="chat-row" onclick="openChat('Jordan','🎮','Playing Fortnite')">
+        <div class="avatar" style="background:#7c3aed33">🎮</div>
+        <div class="chat-info">
+          <div class="chat-top">
+            <span class="chat-name">Jordan</span>
+            <span class="chat-time">2m</span>
+          </div>
+          <div class="chat-preview">🤟 GG that last round!!</div>
+        </div>
+        <div class="chat-unread">3</div>
+      </div>
+
+      <div class="chat-row" onclick="openChat('Gaming Squad','👥','Group · 8 members')">
+        <div class="avatar" style="background:#06d6a033">👥</div>
+        <div class="chat-info">
+          <div class="chat-top">
+            <span class="chat-name">Gaming Squad</span>
+            <span class="chat-time">15m</span>
+          </div>
+          <div class="chat-preview">Sam: Anyone up for Warzone?</div>
+        </div>
+        <div class="chat-unread">7</div>
+      </div>
+
+      <div class="chat-row" onclick="openChat('Sam','🎧','In call')">
+        <div class="avatar" style="background:#f7258522">🎧</div>
+        <div class="chat-info">
+          <div class="chat-top">
+            <span class="chat-name">Sam</span>
+            <span class="chat-time">1h</span>
+          </div>
+          <div class="chat-preview">See you tonight at 8! 🎮</div>
+        </div>
+      </div>
+
+      <div class="chat-row" onclick="openChat('ASL Gamers','🤟','Group · 24 members')">
+        <div class="avatar" style="background:#7c3aed22">🤟</div>
+        <div class="chat-info">
+          <div class="chat-top">
+            <span class="chat-name">ASL Gamers Unite</span>
+            <span class="chat-time">3h</span>
+          </div>
+          <div class="chat-preview">New tournament this weekend!</div>
+        </div>
+        <div class="chat-unread">12</div>
+      </div>
+
+      <div class="chat-row" onclick="openChat('Riley','🌙','Away')">
+        <div class="avatar" style="background:#06d6a022">🌙</div>
+        <div class="chat-info">
+          <div class="chat-top">
+            <span class="chat-name">Riley</span>
+            <span class="chat-time">2h</span>
+          </div>
+          <div class="chat-preview">You: gg wp! 🏆</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ GROUPS ══ -->
+  <div class="screen" id="groupsScreen">
+    <div class="scroll">
+      <div class="groups-header">
+        <h2>Groups</h2>
+        <button class="create-btn" onclick="showModal('newGroup')">+ Create</button>
+      </div>
+
+      <div class="group-card" onclick="openChat('Gaming Squad','👥','Group · 8 members')">
+        <div class="group-top">
+          <div class="group-icon">🎮</div>
+          <div>
+            <div class="group-name">Gaming Squad</div>
+            <div class="group-members">8 members · 3 online</div>
+          </div>
+        </div>
+        <div class="group-preview">Weekly tournaments, game nights & chat for deaf gamers 🤟</div>
+        <div class="group-tags">
+          <span class="tag">ASL</span>
+          <span class="tag">FPS</span>
+          <span class="tag">Fortnite</span>
+          <span class="tag">Open</span>
+        </div>
+      </div>
+
+      <div class="group-card" onclick="openChat('ASL Gamers','🤟','Group · 24 members')">
+        <div class="group-top">
+          <div class="group-icon">🤟</div>
+          <div>
+            <div class="group-name">ASL Gamers Unite</div>
+            <div class="group-members">24 members · 7 online</div>
+          </div>
+        </div>
+        <div class="group-preview">The biggest deaf gaming community. All games welcome!</div>
+        <div class="group-tags">
+          <span class="tag">ASL</span>
+          <span class="tag">All Games</span>
+          <span class="tag">Tournaments</span>
+        </div>
+      </div>
+
+      <div class="group-card" onclick="openChat('Minecraft Deaf','⛏️','Group · 15 members')">
+        <div class="group-top">
+          <div class="group-icon">⛏️</div>
+          <div>
+            <div class="group-name">Minecraft Deaf Builders</div>
+            <div class="group-members">15 members · 2 online</div>
+          </div>
+        </div>
+        <div class="group-preview">Build, survive and explore together in our deaf Minecraft server</div>
+        <div class="group-tags">
+          <span class="tag">Minecraft</span>
+          <span class="tag">Creative</span>
+          <span class="tag">Server</span>
+        </div>
+      </div>
+
+      <div class="group-card" onclick="showToast('🏆 Joining tournament...')">
+        <div class="group-top">
+          <div class="group-icon">🏆</div>
+          <div>
+            <div class="group-name">Weekend Tournament</div>
+            <div class="group-members">32 members · Starts Sat 8PM</div>
+          </div>
+        </div>
+        <div class="group-preview">Monthly Deaf Gamer Championship — all skill levels!</div>
+        <div class="group-tags">
+          <span class="tag">Tournament</span>
+          <span class="tag">Prize</span>
+          <span class="tag">Weekend</span>
+        </div>
+      </div>
+
+      <div style="height:20px"></div>
+    </div>
+  </div>
+
+  <!-- ══ VIDEO ══ -->
+  <div class="screen" id="videoScreen">
+    <div class="video-header">
+      <h2>Video Calls</h2>
+      <button class="new-call-btn" onclick="showModal('newCall')">+ Start Call</button>
+    </div>
+
+    <div class="call-grid">
+      <div class="call-tile me speaking">
+        <div class="call-tile-badge">YOU</div>
+        <div class="call-tile-emoji">😎</div>
+        <div class="call-tile-name">Alex</div>
+        <div class="call-tile-mic">🎤</div>
+      </div>
+      <div class="call-tile speaking">
+        <div class="call-tile-badge">LIVE</div>
+        <div class="call-tile-emoji">🎮</div>
+        <div class="call-tile-name">Jordan</div>
+        <div class="call-tile-mic">🤟</div>
+      </div>
+      <div class="call-tile">
+        <div class="call-tile-emoji">🎧</div>
+        <div class="call-tile-name">Sam</div>
+        <div class="call-tile-mic">🔇</div>
+      </div>
+      <div class="call-tile" style="border:2px dashed var(--border);cursor:pointer" onclick="showModal('addToCall')">
+        <div class="call-tile-emoji" style="font-size:30px;color:var(--text2)">+</div>
+        <div class="call-tile-name" style="color:var(--text2)">Invite</div>
+      </div>
+    </div>
+
+    <div style="padding: 0 16px 8px;">
+      <div style="font-size:12px;color:var(--accent2);text-align:center;font-weight:600">
+        🟢 LIVE · Gaming Squad · 3/6 slots
+      </div>
+    </div>
+
+    <div class="call-controls">
+      <button class="ctrl-btn mic" onclick="showToast('🔇 Muted')">🎤</button>
+      <button class="ctrl-btn cam" onclick="showToast('📷 Camera off')">📷</button>
+      <button class="ctrl-btn asl" onclick="showToast('🤟 ASL Mode ON')">🤟</button>
+      <button class="ctrl-btn chat2" onclick="goToScreen('chatScreen')">💬</button>
+      <button class="ctrl-btn end" onclick="showToast('📵 Call ended')">📵</button>
+    </div>
+  </div>
+
+  <!-- ══ PROFILE ══ -->
+  <div class="screen" id="profileScreen">
+    <div class="scroll">
+      <div class="profile-hero">
+        <div class="profile-ava">😎</div>
+        <div class="profile-name">Alex Rivera</div>
+        <div class="profile-handle">@alexgames 🤟</div>
+        <div class="profile-bio">Deaf gamer since forever. ASL + gaming = life.<br>Fortnite · Minecraft · Valorant</div>
+        <div class="profile-stats">
+          <div class="stat"><div class="stat-num">248</div><div class="stat-label">Friends</div></div>
+          <div class="stat"><div class="stat-num">12</div><div class="stat-label">Groups</div></div>
+          <div class="stat"><div class="stat-num">🏆 3</div><div class="stat-label">Wins</div></div>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <h3>Badges</h3>
+        <div class="badge-row">
+          <div class="profile-badge"><span class="b-icon">🤟</span><span class="b-text">ASL Pro</span></div>
+          <div class="profile-badge"><span class="b-icon">🎮</span><span class="b-text">Gamer</span></div>
+          <div class="profile-badge"><span class="b-icon">🏆</span><span class="b-text">Winner</span></div>
+          <div class="profile-badge"><span class="b-icon">👥</span><span class="b-text">Leader</span></div>
+        </div>
+      </div>
+
+      <div class="profile-section" style="margin-top:20px">
+        <h3>Settings</h3>
+      </div>
+
+      <div class="settings-row" onclick="showToast('✏️ Edit Profile')">
+        <span class="settings-icon">✏️</span>
+        <div class="settings-text"><div class="settings-label">Edit Profile</div><div class="settings-sub">Name, avatar, bio</div></div>
+        <span class="settings-arrow">›</span>
+      </div>
+      <div class="settings-row" onclick="showToast('🔔 Notifications: Visual alerts')">
+        <span class="settings-icon">🔔</span>
+        <div class="settings-text"><div class="settings-label">Notifications</div><div class="settings-sub">Visual alerts & vibration</div></div>
+        <span class="settings-arrow">›</span>
+      </div>
+      <div class="settings-row" onclick="showToast('🤟 ASL Mode enabled')">
+        <span class="settings-icon">🤟</span>
+        <div class="settings-text"><div class="settings-label">ASL Camera Priority</div><div class="settings-sub">Always show hands in video</div></div>
+        <span class="settings-arrow">›</span>
+      </div>
+      <div class="settings-row" onclick="showToast('📝 Captions: Always ON')">
+        <span class="settings-icon">📝</span>
+        <div class="settings-text"><div class="settings-label">Auto Captions</div><div class="settings-sub">Real-time in video calls</div></div>
+        <span class="settings-arrow">›</span>
+      </div>
+      <div class="settings-row" onclick="showToast('🔒 Privacy settings')">
+        <span class="settings-icon">🔒</span>
+        <div class="settings-text"><div class="settings-label">Privacy & Safety</div><div class="settings-sub">Who can contact you</div></div>
+        <span class="settings-arrow">›</span>
+      </div>
+      <div style="height:20px"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="goToScreen('homeScreen',this)">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">HOME</span>
+    </button>
+    <button class="nav-btn" onclick="goToScreen('chatScreen',this)">
+      <span class="nav-badge">
+        <span class="nav-icon">💬</span>
+        <span class="badge">22</span>
+      </span>
+      <span class="nav-label">CHAT</span>
+    </button>
+    <button class="nav-btn" onclick="goToScreen('groupsScreen',this)">
+      <span class="nav-icon">👥</span>
+      <span class="nav-label">GROUPS</span>
+    </button>
+    <button class="nav-btn" onclick="goToScreen('videoScreen',this)">
+      <span class="nav-icon">📹</span>
+      <span class="nav-label">VIDEO</span>
+    </button>
+    <button class="nav-btn" onclick="goToScreen('profileScreen',this)">
+      <span class="nav-icon">😎</span>
+      <span class="nav-label">ME</span>
+    </button>
+  </nav>
+</div>
+
+<!-- CHAT CONVO OVERLAY -->
+<div id="chatConvo" style="position:fixed;inset:0;background:var(--bg);z-index:50;display:none;flex-direction:column;">
+  <div class="convo-header" style="padding-top:calc(var(--safe-top) + 12px)">
+    <button class="back-btn" onclick="closeChat()">‹</button>
+    <div class="convo-avatar" id="convoAvatar">🎮</div>
+    <div style="flex:1">
+      <div class="convo-name" id="convoName">Jordan</div>
+      <div class="convo-status" id="convoStatus">Online</div>
+    </div>
+    <div class="convo-actions">
+      <button class="icon-btn" onclick="goToVideo()">📹</button>
+      <button class="icon-btn" onclick="showToast('ℹ️ Profile info')">ℹ️</button>
+    </div>
+  </div>
+  <div class="messages" id="messagesList">
+    <div class="msg theirs">
+      <div class="msg-bubble">Yo! GG that last match!! 🔥</div>
+      <div class="msg-time">2:34 PM</div>
+    </div>
+    <div class="msg mine">
+      <div class="msg-bubble">IKR! That ending was insane 😂</div>
+      <div class="msg-time">2:35 PM</div>
+    </div>
+    <div class="msg theirs">
+      <div class="msg-bubble msg-emoji">🤟</div>
+      <div class="msg-time">2:35 PM</div>
+    </div>
+    <div class="msg mine">
+      <div class="msg-bubble">Want to do another round? Got 2 more spots</div>
+      <div class="msg-time">2:36 PM</div>
+    </div>
+    <div class="msg theirs">
+      <div class="msg-bubble">YES! Let me get Sam too</div>
+      <div class="msg-time">2:36 PM</div>
+    </div>
+    <div class="msg theirs">
+      <div class="msg-bubble">Video call in 5? 📹</div>
+      <div class="msg-time">2:37 PM</div>
+    </div>
+  </div>
+  <div class="chat-input-bar">
+    <button class="emoji-btn" onclick="sendEmoji()">🤟</button>
+    <input class="chat-input" id="msgInput" placeholder="Message..." onkeydown="if(event.key==='Enter')sendMsg()">
+    <button class="send-btn" onclick="sendMsg()">↑</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const screens = document.querySelectorAll('.screen');
+  const navBtns = document.querySelectorAll('.nav-btn');
+
+  function goToScreen(id, btn) {
+    screens.forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    if (btn) {
+      navBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+  }
+
+  function goToVideo() {
+    closeChat();
+    goToScreen('videoScreen');
+    navBtns.forEach(b => b.classList.remove('active'));
+    navBtns[3].classList.add('active');
+  }
+
+  function openChat(name, avatar, status) {
+    document.getElementById('convoName').textContent = name;
+    document.getElementById('convoAvatar').textContent = avatar;
+    document.getElementById('convoStatus').textContent = status;
+    document.getElementById('chatConvo').style.display = 'flex';
+  }
+
+  function closeChat() {
+    document.getElementById('chatConvo').style.display = 'none';
+  }
+
+  function sendMsg() {
+    const input = document.getElementById('msgInput');
+    const text = input.value.trim();
+    if (!text) return;
+    const msgs = document.getElementById('messagesList');
+    const div = document.createElement('div');
+    div.className = 'msg mine';
+    const now = new Date();
+    const t = now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0') + ' ' + (now.getHours()>=12?'PM':'AM');
+    div.innerHTML = `<div class="msg-bubble">${text}</div><div class="msg-time">${t}</div>`;
+    msgs.appendChild(div);
+    input.value = '';
+    msgs.scrollTop = msgs.scrollHeight;
+
+    // Auto-reply after 1s
+    setTimeout(() => {
+      const r = document.createElement('div');
+      r.className = 'msg theirs';
+      const replies = ['🤟', 'gg!!', 'Let\'s go! 🎮', '👾', 'LFG!!!', '💪'];
+      r.innerHTML = `<div class="msg-bubble">${replies[Math.floor(Math.random()*replies.length)]}</div><div class="msg-time">${t}</div>`;
+      msgs.appendChild(r);
+      msgs.scrollTop = msgs.scrollHeight;
+    }, 1000);
+  }
+
+  function sendEmoji() {
+    const msgs = document.getElementById('messagesList');
+    const emojis = ['🤟','🎮','🏆','👾','💪','🔥'];
+    const e = emojis[Math.floor(Math.random()*emojis.length)];
+    const div = document.createElement('div');
+    div.className = 'msg mine';
+    div.innerHTML = `<div class="msg-bubble msg-emoji">${e}</div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  const modals = {
+    newChat: `
+      <div class="modal-title">New Message</div>
+      <input class="modal-input" placeholder="Search friends..." />
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+        ${['Jordan 🎮','Sam 🎧','Riley 🌙','Casey 🎯'].map(f => `
+          <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--surface2);border-radius:12px;cursor:pointer" onclick="closeModal();showToast('💬 Opening chat...')">
+            <span style="font-size:20px">${f.split(' ')[1]}</span>
+            <span style="font-size:15px;font-weight:600">${f.split(' ')[0]}</span>
+          </div>`).join('')}
+      </div>`,
+    newGroup: `
+      <div class="modal-title">Create Group</div>
+      <input class="modal-input" placeholder="Group name..." />
+      <input class="modal-input" placeholder="Description..." />
+      <div style="font-size:13px;color:var(--text2);margin-bottom:8px">Add members:</div>
+      ${['Jordan','Sam','Riley','Casey'].map(f => `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0">
+          <input type="checkbox" style="width:20px;height:20px;accent-color:var(--accent)">
+          <span style="font-size:15px">${f}</span>
+        </div>`).join('')}
+      <button class="modal-btn" onclick="closeModal();showToast('👥 Group created!')">Create Group</button>`,
+    newCall: `
+      <div class="modal-title">Start Video Call</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:12px">Invite up to 6 people</div>
+      ${['Jordan 🎮','Sam 🎧','Riley 🌙','Casey 🎯','Morgan 🎪'].map(f => `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--surface2);border-radius:12px;cursor:pointer;margin-bottom:8px" onclick="">
+          <input type="checkbox" style="width:20px;height:20px;accent-color:var(--accent)">
+          <span style="font-size:18px">${f.split(' ')[1]}</span>
+          <span style="font-size:15px;font-weight:600">${f.split(' ')[0]}</span>
+        </div>`).join('')}
+      <button class="modal-btn" onclick="closeModal();showToast('📹 Starting call...')">Start Call 📹</button>`,
+    addToCall: `
+      <div class="modal-title">Add to Call (3/6)</div>
+      ${['Riley 🌙','Casey 🎯','Morgan 🎪'].map(f => `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--surface2);border-radius:12px;cursor:pointer;margin-bottom:8px" onclick="closeModal();showToast('📹 Inviting ${f.split(' ')[0]}...')">
+          <span style="font-size:18px">${f.split(' ')[1]}</span>
+          <span style="font-size:15px;font-weight:600">${f.split(' ')[0]}</span>
+          <span style="margin-left:auto;color:var(--accent2);font-size:13px">Invite</span>
+        </div>`).join('')}`,
+  };
+
+  function showModal(type) {
+    document.getElementById('modalContent').innerHTML = modals[type] || '';
+    document.getElementById('modalOverlay').classList.add('show');
+  }
+
+  function closeModal(e) {
+    if (!e || e.target === document.getElementById('modalOverlay')) {
+      document.getElementById('modalOverlay').classList.remove('show');
+    }
+  }
+
+  // Register service worker for PWA
+  if ('serviceWorker' in navigator) {
+    const sw = `
+      self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => new Response('Offline'))));
+    `;
+    const blob = new Blob([sw], {type: 'application/javascript'});
+    navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+  }
+</script>
+</body>
+</html>
