@@ -10,6 +10,7 @@
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#7c3aed">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Orbitron:wght@700;900&family=Nunito:wght@600;700;800&family=Roboto+Mono:wght@400;700&family=Pacifico&display=swap');
 :root{--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);--fs-base:15px;--fs-sm:12px;--fs-xs:11px;--fs-lg:18px;--fs-xl:22px;--fs-2xl:28px;--font:'Space Grotesk',sans-serif;--accent:#7c3aed;--accent2:#06d6a0;--accent3:#f72585;}
@@ -816,7 +817,19 @@ async function doLogin(){var email=document.getElementById('lu').value.trim(),pa
 
 async function doReg(){var username=document.getElementById('ru').value.trim().toLowerCase().replace(/\s+/g,'_'),fullName=document.getElementById('rn').value.trim(),email=document.getElementById('re').value.trim(),pass=document.getElementById('rp').value,pass2=document.getElementById('rp2').value,err=document.getElementById('rErr');err.classList.remove('show');var btn=document.getElementById('regBtn');if(!username||username.length<3){err.textContent='Usuario: mínimo 3 caracteres';err.classList.add('show');return;}if(!fullName){err.textContent='Ingresá tu nombre';err.classList.add('show');return;}if(!email||!email.includes('@')){err.textContent='Email inválido';err.classList.add('show');return;}if(!pass||pass.length<6){err.textContent='Contraseña: mínimo 6 caracteres';err.classList.add('show');return;}if(pass!==pass2){err.textContent='Las contraseñas no coinciden';err.classList.add('show');return;}var{data:existing}=await SB.from('profiles').select('id').eq('username',username).maybeSingle();if(existing){err.textContent='El usuario "'+username+'" ya existe';err.classList.add('show');return;}btn.disabled=true;btn.querySelector('span').textContent='⏳ Creando cuenta...';var{data,error}=await SB.auth.signUp({email:email,password:pass});if(error){err.textContent=error.message;err.classList.add('show');btn.disabled=false;btn.querySelector('span').textContent='🤟 Crear Cuenta';return;}var userId=data.user.id,avatarUrl=null;if(regPhotoFile){var ext=regPhotoFile.name.split('.').pop(),path=userId+'/avatar.'+ext;var{data:upData}=await SB.storage.from('avatars').upload(path,regPhotoFile,{upsert:true});if(upData){var{data:urlData}=SB.storage.from('avatars').getPublicUrl(path);avatarUrl=urlData.publicUrl;}}await SB.from('profiles').upsert({id:userId,username:username,full_name:fullName,avatar_emoji:selAva,avatar_url:avatarUrl,bio:'Deaf gamer. ASL + gaming = vida. 🎮'});btn.disabled=false;btn.querySelector('span').textContent='🤟 Crear Cuenta';document.getElementById('authWrap').classList.remove('show');await loadProfile(data.user);}
 
-async function loadProfile(user){showLoading('Cargando perfil...');var{data:profile}=await SB.from('profiles').select('*').eq('id',user.id).maybeSingle();ME={id:user.id,email:user.email,username:profile?profile.username:user.email.split('@')[0],name:profile?profile.full_name:'Gamer',avatar:profile?(profile.avatar_emoji||'😎'):'😎',avatarUrl:profile?profile.avatar_url:null,bannerUrl:profile?profile.banner_url:null,bio:profile?profile.bio:'Deaf gamer. ASL + gaming = vida. 🎮'};hideLoading();showConnectEffect(ME.name);}
+async function loadProfile(user){showLoading('Cargando perfil...');var{data:profile}=await SB.from('profiles').select('*').eq('id',user.id).maybeSingle();ME={id:user.id,email:user.email,username:profile?profile.username:user.email.split('@')[0],name:profile?profile.full_name:'Gamer',avatar:profile?(profile.avatar_emoji||'😎'):'😎',avatarUrl:profile?profile.avatar_url:null,bannerUrl:profile?profile.banner_url:null,bio:profile?profile.bio:'Deaf gamer. ASL + gaming = vida. 🎮'};hideLoading();showConnectEffect(ME.name);initPushNotifications();}
+
+var ONESIGNAL_APP_ID='41fc9d6b-395f-4906-8d5d-9a2f46d5d733';
+function initPushNotifications(){
+  if(!window.OneSignalDeferred)window.OneSignalDeferred=[];
+  OneSignalDeferred.push(async function(OneSignal){
+    try{
+      await OneSignal.init({appId:ONESIGNAL_APP_ID,allowLocalhostAsSecureOrigin:true});
+      await OneSignal.login(ME.id);
+      await OneSignal.Notifications.requestPermission();
+    }catch(e){console.warn('Push no disponible:',e);}
+  });
+}
 
 function showForgot(){document.getElementById('modalBody').innerHTML='<div class="modal-title">🔐 Recuperar Contraseña</div><div style="font-size:var(--fs-sm);color:var(--text2);margin-bottom:14px">Te enviamos un email con el link para resetear tu contraseña.</div><input class="m-inp" id="forgotEmail" type="email" placeholder="Tu email..."><button class="m-btn" onclick="sendForgot()">📧 Enviar link</button>';document.getElementById('modalOv').classList.add('show');}
 async function sendForgot(){var email=document.getElementById('forgotEmail').value.trim();if(!email){showToast('❌ Ingresá tu email');return;}await SB.auth.resetPasswordForEmail(email);closeModal();showToast('📧 ¡Email enviado! Revisá tu bandeja');}
